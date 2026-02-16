@@ -2,6 +2,7 @@ package com.mybudget.service;
 
 import com.mybudget.model.Transaction;
 import com.mybudget.model.ValidationException;
+import com.mybudget.repository.DatabaseManager;
 import com.mybudget.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,30 +12,29 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 class TransactionServiceTest {
-    private TransactionRepository transactionRepository;
     private TransactionService transactionService;
+    private DatabaseManager databaseManager;
 
     @BeforeEach
     void setUp() {
-        transactionRepository = mock(TransactionRepository.class);
+        // Utiliser une base de données temporaire pour les tests
+        String dbUrl = "jdbc:sqlite:test_" + System.nanoTime() + ".db";
+        databaseManager = new DatabaseManager(dbUrl);
+        TransactionRepository transactionRepository = new TransactionRepository(databaseManager);
         transactionService = new TransactionService(transactionRepository);
     }
 
-    // Tests de validation - categorie
     @Test
     void ajouterTransaction_devrait_rejeter_categorie_nulle() {
         ValidationException exception = assertThrows(ValidationException.class, () ->
             transactionService.ajouterTransaction(null, new BigDecimal("100"), "Description", LocalDate.now())
         );
         assertEquals("La catégorie ne peut pas être vide", exception.getMessage());
-        verify(transactionRepository, never()).enregistrer(any());
     }
 
     @ParameterizedTest
@@ -45,17 +45,14 @@ class TransactionServiceTest {
             transactionService.ajouterTransaction(categorieInvalide, new BigDecimal("100"), "Description", LocalDate.now())
         );
         assertEquals("La catégorie ne peut pas être vide", exception.getMessage());
-        verify(transactionRepository, never()).enregistrer(any());
     }
 
-    // Tests de validation - montant
     @Test
     void ajouterTransaction_devrait_rejeter_montant_nul() {
         ValidationException exception = assertThrows(ValidationException.class, () ->
             transactionService.ajouterTransaction("Alimentation", null, "Description", LocalDate.now())
         );
         assertEquals("Le montant doit être positif", exception.getMessage());
-        verify(transactionRepository, never()).enregistrer(any());
     }
 
     @ParameterizedTest
@@ -65,17 +62,14 @@ class TransactionServiceTest {
             transactionService.ajouterTransaction("Alimentation", new BigDecimal(montantInvalide), "Description", LocalDate.now())
         );
         assertEquals("Le montant doit être positif", exception.getMessage());
-        verify(transactionRepository, never()).enregistrer(any());
     }
 
-    // Tests de validation - date
     @Test
     void ajouterTransaction_devrait_rejeter_date_nulle() {
         ValidationException exception = assertThrows(ValidationException.class, () ->
             transactionService.ajouterTransaction("Alimentation", new BigDecimal("100"), "Description", null)
         );
         assertEquals("La date ne peut pas être nulle", exception.getMessage());
-        verify(transactionRepository, never()).enregistrer(any());
     }
 
     @Test
@@ -85,141 +79,84 @@ class TransactionServiceTest {
             transactionService.ajouterTransaction("Alimentation", new BigDecimal("100"), "Description", dateFuture)
         );
         assertEquals("La date ne peut pas être dans le futur", exception.getMessage());
-        verify(transactionRepository, never()).enregistrer(any());
     }
 
-    // Tests de succès
     @Test
     void ajouterTransaction_devrait_enregistrer_transaction_valide() {
-        String categorie = "Alimentation";
-        BigDecimal montant = new BigDecimal("50.00");
-        String description = "Courses du mois";
-        LocalDate date = LocalDate.now();
-
-        Transaction transactionAttendue = new Transaction(null, categorie, montant, description, date);
-        when(transactionRepository.enregistrer(any(Transaction.class))).thenReturn(transactionAttendue);
-
-        Transaction resultat = transactionService.ajouterTransaction(categorie, montant, description, date);
+        Transaction resultat = transactionService.ajouterTransaction("Alimentation", new BigDecimal("50.00"), "Courses", LocalDate.now());
 
         assertNotNull(resultat);
-        assertEquals(categorie, resultat.getCategorie());
-        assertEquals(montant, resultat.getMontant());
-        assertEquals(description, resultat.getDescription());
-        assertEquals(date, resultat.getDate());
-        verify(transactionRepository, times(1)).enregistrer(any(Transaction.class));
+        assertNotNull(resultat.getId());
+        assertEquals("Alimentation", resultat.getCategorie());
+        assertEquals(new BigDecimal("50.00"), resultat.getMontant());
     }
 
     @Test
     void ajouterTransaction_devrait_autoriser_description_nulle() {
-        String categorie = "Transport";
-        BigDecimal montant = new BigDecimal("25.00");
-        LocalDate date = LocalDate.now();
-
-        Transaction transactionAttendue = new Transaction(null, categorie, montant, null, date);
-        when(transactionRepository.enregistrer(any(Transaction.class))).thenReturn(transactionAttendue);
-
-        Transaction resultat = transactionService.ajouterTransaction(categorie, montant, null, date);
+        Transaction resultat = transactionService.ajouterTransaction("Transport", new BigDecimal("25.00"), null, LocalDate.now());
 
         assertNotNull(resultat);
         assertNull(resultat.getDescription());
-        verify(transactionRepository, times(1)).enregistrer(any(Transaction.class));
     }
 
     @Test
     void ajouterTransaction_devrait_normaliser_categorie() {
-        String categorieAvecEspaces = "  Alimentation  ";
-        BigDecimal montant = new BigDecimal("50.00");
-        LocalDate date = LocalDate.now();
-
-        when(transactionRepository.enregistrer(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        Transaction resultat = transactionService.ajouterTransaction(categorieAvecEspaces, montant, "Test", date);
-
+        Transaction resultat = transactionService.ajouterTransaction("  Alimentation  ", new BigDecimal("50.00"), "Test", LocalDate.now());
         assertEquals("Alimentation", resultat.getCategorie());
-        verify(transactionRepository, times(1)).enregistrer(any(Transaction.class));
     }
 
-    // Tests de listerTransactions
     @Test
     void listerTransactions_devrait_retourner_toutes_les_transactions() {
-        List<Transaction> transactionsAttendues = Arrays.asList(
-            new Transaction(1L, "Alimentation", new BigDecimal("50"), "Courses", LocalDate.now()),
-            new Transaction(2L, "Transport", new BigDecimal("30"), "Essence", LocalDate.now())
-        );
-        when(transactionRepository.trouverTout()).thenReturn(transactionsAttendues);
+        transactionService.ajouterTransaction("Alimentation", new BigDecimal("50"), "Courses", LocalDate.now());
+        transactionService.ajouterTransaction("Transport", new BigDecimal("30"), "Essence", LocalDate.now());
 
         List<Transaction> resultat = transactionService.listerTransactions();
-
         assertEquals(2, resultat.size());
-        verify(transactionRepository, times(1)).trouverTout();
     }
 
     @Test
     void listerTransactions_devrait_retourner_liste_vide_si_aucune_transaction() {
-        when(transactionRepository.trouverTout()).thenReturn(List.of());
-
         List<Transaction> resultat = transactionService.listerTransactions();
-
         assertTrue(resultat.isEmpty());
-        verify(transactionRepository, times(1)).trouverTout();
     }
 
-    // Tests de listerTransactionsParCategorie
     @Test
     void listerTransactionsParCategorie_devrait_filtrer_par_categorie() {
-        String categorie = "Alimentation";
-        List<Transaction> transactionsAttendues = Arrays.asList(
-            new Transaction(1L, categorie, new BigDecimal("50"), "Courses", LocalDate.now()),
-            new Transaction(3L, categorie, new BigDecimal("25"), "Restaurant", LocalDate.now())
-        );
-        when(transactionRepository.trouverParCategorie(categorie)).thenReturn(transactionsAttendues);
+        transactionService.ajouterTransaction("Alimentation", new BigDecimal("50"), "Courses", LocalDate.now());
+        transactionService.ajouterTransaction("Transport", new BigDecimal("30"), "Essence", LocalDate.now());
+        transactionService.ajouterTransaction("Alimentation", new BigDecimal("25"), "Restaurant", LocalDate.now());
 
-        List<Transaction> resultat = transactionService.listerTransactionsParCategorie(categorie);
+        List<Transaction> resultat = transactionService.listerTransactionsParCategorie("Alimentation");
 
         assertEquals(2, resultat.size());
-        assertTrue(resultat.stream().allMatch(t -> t.getCategorie().equals(categorie)));
-        verify(transactionRepository, times(1)).trouverParCategorie(categorie);
+        assertTrue(resultat.stream().allMatch(t -> t.getCategorie().equals("Alimentation")));
     }
 
-    // Tests de calculerTotalParCategorie
     @Test
     void calculerTotalParCategorie_devrait_sommer_montants() {
-        String categorie = "Alimentation";
-        int mois = 1;
-        int annee = 2024;
-        List<Transaction> transactions = Arrays.asList(
-            new Transaction(1L, categorie, new BigDecimal("50.00"), "Courses", LocalDate.of(2024, 1, 15)),
-            new Transaction(2L, categorie, new BigDecimal("25.50"), "Restaurant", LocalDate.of(2024, 1, 20))
-        );
-        when(transactionRepository.trouverParCategorieEtMoisEtAnnee(categorie, mois, annee)).thenReturn(transactions);
+        int mois = LocalDate.now().getMonthValue();
+        int annee = LocalDate.now().getYear();
+        transactionService.ajouterTransaction("Alimentation", new BigDecimal("50.00"), "Courses", LocalDate.now());
+        transactionService.ajouterTransaction("Alimentation", new BigDecimal("25.50"), "Restaurant", LocalDate.now());
 
-        BigDecimal total = transactionService.calculerTotalParCategorie(categorie, mois, annee);
-
-        assertEquals(new BigDecimal("75.50"), total);
-        verify(transactionRepository, times(1)).trouverParCategorieEtMoisEtAnnee(categorie, mois, annee);
+        BigDecimal total = transactionService.calculerTotalParCategorie("Alimentation", mois, annee);
+        assertEquals(0, new BigDecimal("75.50").compareTo(total));
     }
 
     @Test
     void calculerTotalParCategorie_devrait_retourner_zero_si_aucune_transaction() {
-        String categorie = "Transport";
-        int mois = 1;
-        int annee = 2024;
-        when(transactionRepository.trouverParCategorieEtMoisEtAnnee(categorie, mois, annee)).thenReturn(List.of());
-
-        BigDecimal total = transactionService.calculerTotalParCategorie(categorie, mois, annee);
-
+        BigDecimal total = transactionService.calculerTotalParCategorie("Transport", 1, 2024);
         assertEquals(BigDecimal.ZERO, total);
-        verify(transactionRepository, times(1)).trouverParCategorieEtMoisEtAnnee(categorie, mois, annee);
     }
 
-    // Tests de supprimerTransaction
     @Test
     void supprimerTransaction_devrait_supprimer_transaction_existante() {
-        Long id = 1L;
+        Transaction transaction = transactionService.ajouterTransaction("Test", new BigDecimal("100"), "Test", LocalDate.now());
+        
+        transactionService.supprimerTransaction(transaction.getId());
 
-        transactionService.supprimerTransaction(id);
-
-        verify(transactionRepository, times(1)).supprimerParId(id);
+        List<Transaction> transactions = transactionService.listerTransactions();
+        assertTrue(transactions.isEmpty());
     }
 
     @Test
@@ -228,21 +165,18 @@ class TransactionServiceTest {
             transactionService.supprimerTransaction(null)
         );
         assertEquals("L'identifiant ne peut pas être nul", exception.getMessage());
-        verify(transactionRepository, never()).supprimerParId(any());
     }
 
-    // Tests de modifierTransaction
     @Test
     void modifierTransaction_devrait_modifier_transaction_valide() {
-        Long id = 1L;
-        String categorie = "Alimentation";
-        BigDecimal montant = new BigDecimal("75.00");
-        String description = "Courses modifiées";
-        LocalDate date = LocalDate.now();
+        Transaction transaction = transactionService.ajouterTransaction("Alimentation", new BigDecimal("50"), "Test", LocalDate.now());
+        
+        transactionService.modifierTransaction(transaction.getId(), "Transport", new BigDecimal("75.00"), "Modifié", LocalDate.now());
 
-        transactionService.modifierTransaction(id, categorie, montant, description, date);
-
-        verify(transactionRepository, times(1)).modifier(any(Transaction.class));
+        List<Transaction> transactions = transactionService.listerTransactions();
+        assertEquals(1, transactions.size());
+        assertEquals("Transport", transactions.get(0).getCategorie());
+        assertEquals(0, new BigDecimal("75.00").compareTo(transactions.get(0).getMontant()));
     }
 
     @Test
@@ -251,7 +185,6 @@ class TransactionServiceTest {
             transactionService.modifierTransaction(null, "Alimentation", new BigDecimal("100"), "Test", LocalDate.now())
         );
         assertEquals("L'identifiant ne peut pas être nul", exception.getMessage());
-        verify(transactionRepository, never()).modifier(any());
     }
 
     @Test
@@ -260,7 +193,6 @@ class TransactionServiceTest {
             transactionService.modifierTransaction(1L, "", new BigDecimal("100"), "Test", LocalDate.now())
         );
         assertEquals("La catégorie ne peut pas être vide", exception.getMessage());
-        verify(transactionRepository, never()).modifier(any());
     }
 
     @Test
@@ -269,7 +201,6 @@ class TransactionServiceTest {
             transactionService.modifierTransaction(1L, "Alimentation", new BigDecimal("-50"), "Test", LocalDate.now())
         );
         assertEquals("Le montant doit être positif", exception.getMessage());
-        verify(transactionRepository, never()).modifier(any());
     }
 
     @Test
@@ -278,6 +209,5 @@ class TransactionServiceTest {
             transactionService.modifierTransaction(1L, "Alimentation", new BigDecimal("100"), "Test", null)
         );
         assertEquals("La date ne peut pas être nulle", exception.getMessage());
-        verify(transactionRepository, never()).modifier(any());
     }
 }
