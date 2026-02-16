@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { transactionsAPI, budgetsAPI } from '../services/api'
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 
-const COLORS = ['#667eea', '#764ba2', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
+const COLORS = ['#667eea', '#764ba2', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'];
 
 function Dashboard() {
   const [stats, setStats] = useState({ revenus: 0, depenses: 0, solde: 0 })
@@ -12,6 +12,9 @@ function Dashboard() {
 
   useEffect(() => {
     loadData()
+    // Rafraîchir toutes les 5 secondes pour détecter les changements
+    const interval = setInterval(loadData, 5000)
+    return () => clearInterval(interval)
   }, [])
 
   const loadData = async () => {
@@ -55,33 +58,62 @@ function Dashboard() {
   }))
 
   if (loading) {
-    return <div className="card">Chargement...</div>
+    return (
+      <div className="card">
+        <div style={{ textAlign: 'center', padding: '3rem' }}>
+          <div style={{ fontSize: '1.25rem', color: '#6b7280' }}>Chargement des données...</div>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div>
-      <h1 style={{ marginBottom: '2rem' }}>Tableau de bord</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+        <div>
+          <h1>Tableau de bord</h1>
+          <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '1.1rem', marginTop: '0.5rem' }}>
+            Vue d'ensemble de vos finances
+          </p>
+        </div>
+        <button 
+          className="btn" 
+          onClick={loadData}
+          style={{ padding: '0.75rem 1.5rem' }}
+        >
+          Actualiser
+        </button>
+      </div>
       
       <div className="stats-grid">
         <div className="stat-card">
-          <h3>Revenus</h3>
+          <h3>Revenus totaux</h3>
           <div className="stat-value positive">
             {stats.revenus.toFixed(2)} €
           </div>
+          <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.5rem' }}>
+            Entrées d'argent
+          </p>
         </div>
         
         <div className="stat-card">
-          <h3>Dépenses</h3>
+          <h3>Dépenses totales</h3>
           <div className="stat-value negative">
             {stats.depenses.toFixed(2)} €
           </div>
+          <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.5rem' }}>
+            Sorties d'argent
+          </p>
         </div>
         
         <div className="stat-card">
-          <h3>Solde</h3>
+          <h3>Solde actuel</h3>
           <div className={`stat-value ${stats.solde >= 0 ? 'positive' : 'negative'}`}>
             {stats.solde.toFixed(2)} €
           </div>
+          <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.5rem' }}>
+            {stats.solde >= 0 ? 'Excédent' : 'Déficit'}
+          </p>
         </div>
       </div>
 
@@ -118,35 +150,69 @@ function Dashboard() {
       <div className="card">
         <h2>Budgets actifs</h2>
         {budgets.length > 0 ? (
-          <div style={{ display: 'grid', gap: '1rem' }}>
+          <div style={{ display: 'grid', gap: '1.5rem' }}>
             {budgets.map(budget => (
-              <div key={budget.id} style={{ padding: '1rem', background: '#f9fafb', borderRadius: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <strong>{budget.categorie}</strong>
-                  <span style={{ color: '#6b7280' }}>
-                    {budget.mois}/{budget.annee}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span>{budget.depense.toFixed(2)} € / {budget.montant_limite.toFixed(2)} €</span>
+              <div key={budget.id} style={{ 
+                padding: '1.5rem', 
+                background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)', 
+                borderRadius: '12px',
+                border: '1px solid #e5e7eb',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', alignItems: 'center' }}>
+                  <div>
+                    <strong style={{ fontSize: '1.125rem', color: '#1f2937' }}>{budget.categorie}</strong>
+                    <div style={{ color: '#6b7280', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                      Période: {budget.mois}/{budget.annee}
+                    </div>
+                  </div>
                   <span className={`badge ${budget.alerte || 'success'}`}>
                     {budget.pourcentage.toFixed(0)}%
                   </span>
                 </div>
-                <div className="progress-bar">
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                  <span style={{ color: '#6b7280' }}>
+                    Dépensé: <strong style={{ color: '#ef4444' }}>{budget.depense.toFixed(2)} €</strong>
+                  </span>
+                  <span style={{ color: '#6b7280' }}>
+                    Limite: <strong style={{ color: '#374151' }}>{budget.montant_limite.toFixed(2)} €</strong>
+                  </span>
+                  <span style={{ color: '#6b7280' }}>
+                    Restant: <strong style={{ color: budget.restant >= 0 ? '#10b981' : '#ef4444' }}>
+                      {budget.restant.toFixed(2)} €
+                    </strong>
+                  </span>
+                </div>
+                <div className="progress-bar" style={{ height: '12px' }}>
                   <div 
                     className={`progress-fill ${budget.alerte || 'success'}`}
                     style={{ width: `${Math.min(budget.pourcentage, 100)}%` }}
                   />
                 </div>
                 {budget.alerte === 'danger' && (
-                  <div style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.5rem' }}>
-                    ⚠️ Budget dépassé !
+                  <div style={{ 
+                    color: '#991b1b', 
+                    fontSize: '0.875rem', 
+                    marginTop: '0.75rem',
+                    padding: '0.5rem',
+                    background: '#fee2e2',
+                    borderRadius: '6px',
+                    fontWeight: '600'
+                  }}>
+                    Attention: Budget dépassé de {Math.abs(budget.restant).toFixed(2)} €
                   </div>
                 )}
                 {budget.alerte === 'warning' && (
-                  <div style={{ color: '#f59e0b', fontSize: '0.875rem', marginTop: '0.5rem' }}>
-                    ⚠️ Budget bientôt atteint
+                  <div style={{ 
+                    color: '#92400e', 
+                    fontSize: '0.875rem', 
+                    marginTop: '0.75rem',
+                    padding: '0.5rem',
+                    background: '#fef3c7',
+                    borderRadius: '6px',
+                    fontWeight: '600'
+                  }}>
+                    Attention: Vous avez utilisé {budget.pourcentage.toFixed(0)}% de votre budget
                   </div>
                 )}
               </div>
@@ -154,7 +220,8 @@ function Dashboard() {
           </div>
         ) : (
           <div className="empty-state">
-            <p>Aucun budget défini</p>
+            <h3>Aucun budget défini</h3>
+            <p>Créez votre premier budget pour suivre vos dépenses</p>
           </div>
         )}
       </div>

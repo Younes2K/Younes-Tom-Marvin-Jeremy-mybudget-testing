@@ -22,6 +22,9 @@ function Transactions() {
 
   useEffect(() => {
     loadTransactions()
+    // Rafraîchir automatiquement toutes les 5 secondes
+    const interval = setInterval(loadTransactions, 5000)
+    return () => clearInterval(interval)
   }, [filters])
 
   const loadTransactions = async () => {
@@ -104,13 +107,18 @@ function Transactions() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1>Transactions</h1>
+        <div>
+          <h1>Transactions</h1>
+          <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '1rem', marginTop: '0.5rem' }}>
+            Gérez toutes vos opérations financières
+          </p>
+        </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button className="btn btn-secondary" onClick={handleExport}>
-            📥 Exporter CSV
+            Exporter CSV
           </button>
           <button className="btn" onClick={() => { resetForm(); setShowModal(true); }}>
-            ➕ Nouvelle transaction
+            Nouvelle transaction
           </button>
         </div>
       </div>
@@ -189,17 +197,17 @@ function Transactions() {
                     <td>
                       <button 
                         className="btn btn-secondary" 
-                        style={{ marginRight: '0.5rem', padding: '0.5rem 1rem' }}
+                        style={{ marginRight: '0.5rem', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
                         onClick={() => handleEdit(t)}
                       >
-                        ✏️
+                        Modifier
                       </button>
                       <button 
                         className="btn btn-danger"
-                        style={{ padding: '0.5rem 1rem' }}
+                        style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
                         onClick={() => handleDelete(t.id)}
                       >
-                        🗑️
+                        Supprimer
                       </button>
                     </td>
                   </tr>

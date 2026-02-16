@@ -14,6 +14,9 @@ function Budgets() {
 
   useEffect(() => {
     loadBudgets()
+    // Rafraîchir automatiquement toutes les 5 secondes
+    const interval = setInterval(loadBudgets, 5000)
+    return () => clearInterval(interval)
   }, [])
 
   const loadBudgets = async () => {
@@ -77,9 +80,14 @@ function Budgets() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1>Budgets</h1>
+        <div>
+          <h1>Budgets</h1>
+          <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '1rem', marginTop: '0.5rem' }}>
+            Suivez vos budgets par catégorie et période
+          </p>
+        </div>
         <button className="btn" onClick={() => { resetForm(); setShowModal(true); }}>
-          ➕ Nouveau budget
+          Nouveau budget
         </button>
       </div>
 
@@ -96,10 +104,10 @@ function Budgets() {
                 </div>
                 <button 
                   className="btn btn-danger"
-                  style={{ padding: '0.5rem 1rem' }}
+                  style={{ padding: '0.75rem 1.25rem' }}
                   onClick={() => handleDelete(budget.id)}
                 >
-                  🗑️ Supprimer
+                  Supprimer
                 </button>
               </div>
 
@@ -144,10 +152,11 @@ function Budgets() {
                   padding: '0.75rem', 
                   background: '#fee2e2', 
                   color: '#991b1b', 
-                  borderRadius: '6px',
-                  fontWeight: '500'
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  fontSize: '0.9rem'
                 }}>
-                  ⚠️ Budget dépassé de {Math.abs(budget.restant).toFixed(2)} € !
+                  Attention: Budget dépassé de {Math.abs(budget.restant).toFixed(2)} €
                 </div>
               )}
               
@@ -157,10 +166,11 @@ function Budgets() {
                   padding: '0.75rem', 
                   background: '#fef3c7', 
                   color: '#92400e', 
-                  borderRadius: '6px',
-                  fontWeight: '500'
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  fontSize: '0.9rem'
                 }}>
-                  ⚠️ Attention, vous avez utilisé {budget.pourcentage.toFixed(0)}% de votre budget
+                  Attention: Vous avez utilisé {budget.pourcentage.toFixed(0)}% de votre budget
                 </div>
               )}
             </div>

@@ -27,7 +27,15 @@ Application web pour gérer son budget personnel avec suivi des dépenses, alert
 
 ## Lancement
 
-### Interface Web (recommandé)
+### Lancement rapide (recommandé)
+
+```bash
+powershell -ExecutionPolicy Bypass -File .\start.ps1
+```
+
+Ce script lance automatiquement le backend et le frontend dans des fenêtres séparées.
+
+### Interface Web (manuel)
 
 **Backend**
 ```bash

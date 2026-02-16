@@ -5,7 +5,16 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'budget.db');
+// Chemin vers la racine du projet (2 niveaux au-dessus: db -> backend -> root)
+const projectRoot = path.join(__dirname, '..', '..');
+const dbPath = process.env.DB_PATH 
+  ? (path.isAbsolute(process.env.DB_PATH) 
+      ? process.env.DB_PATH 
+      : path.join(projectRoot, process.env.DB_PATH))
+  : path.join(projectRoot, 'budget.db');
+
+console.log('📂 Chemin de la base de données:', dbPath);
+
 const db = new Database(dbPath);
 
 export function initDatabase() {
@@ -35,7 +44,13 @@ export function initDatabase() {
     )
   `);
 
-  console.log('✅ Base de données initialisée');
+  console.log('✅ Base de données initialisée:', dbPath);
+  
+  // Afficher le nombre d'enregistrements pour debug
+  const transCount = db.prepare('SELECT COUNT(*) as count FROM transactions').get();
+  const budgetCount = db.prepare('SELECT COUNT(*) as count FROM budgets').get();
+  console.log(`📊 Transactions: ${transCount.count}, Budgets: ${budgetCount.count}`);
 }
+
 
 export default db;

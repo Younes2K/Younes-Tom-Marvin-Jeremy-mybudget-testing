@@ -10,9 +10,9 @@ function App() {
       <div className="app">
         <nav className="navbar">
           <div className="container">
-            <h1 className="logo">💰 Budget Personnel</h1>
+            <h1 className="logo">Budget Personnel</h1>
             <ul className="nav-links">
-              <li><Link to="/">Dashboard</Link></li>
+              <li><Link to="/">Tableau de bord</Link></li>
               <li><Link to="/transactions">Transactions</Link></li>
               <li><Link to="/budgets">Budgets</Link></li>
             </ul>
