@@ -1,31 +1,33 @@
-# Gestion de Budget Personnel
+# Budget Personnel
 
-Application en ligne de commande pour gérer son budget personnel avec suivi des dépenses et alertes de dépassement.
+Application en ligne de commande pour gérer son budget personnel avec suivi des dépenses, alertes de dépassement et exports CSV.
 
-## Fonctionnalités
+## Ce qu'on peut faire
 
-### MVP (Minimum Viable Product)
-- ✅ Ajouter une transaction (catégorie, montant, description, date)
-- ✅ Lister toutes les transactions
-- ✅ Définir un budget mensuel par catégorie
-- ✅ Calculer le montant dépensé par catégorie
-- ✅ Calculer le montant restant dans un budget
+- **Transactions**
+  - Ajouter une transaction (revenu ou dépense)
+  - Modifier / supprimer une transaction
+  - Lister l'historique des transactions
+  - Filtrer par catégorie, dates ou type
 
-### Fonctionnalités supplémentaires
-- ✅ Modifier une transaction existante
-- ✅ Supprimer une transaction
-- ✅ Alertes automatiques en cas de dépassement de budget
-- ✅ Export des transactions au format CSV
-- ✅ Filtrage des transactions par catégorie
-- ✅ Calcul du pourcentage d'utilisation du budget
-- ✅ Validation complète des données (montants positifs, dates valides, etc.)
+- **Budgets**
+  - Créer un budget (catégorie + période mensuelle)
+  - Voir un résumé du budget (dépensé, restant, pourcentage)
+  - Afficher une alerte si le budget est proche ou dépassé
 
-## Prérequis
+- **Export**
+  - Exporter les transactions en CSV
 
-- Java 17 ou supérieur
-- Maven 3.6+
+## Stack
 
-## Installation
+- **Langage** : Java 17
+- **Build** : Maven 3.6+
+- **Base de données** : SQLite
+- **Tests** : JUnit 5 + JaCoCo (couverture)
+
+## Lancement
+
+### Installation
 
 ```bash
 git clone https://github.com/Younes2K/Younes-Tom-Marvin-Jeremy-mybudget-testing.git
@@ -33,26 +35,13 @@ cd Younes-Tom-Marvin-Jeremy-mybudget-testing
 mvn clean package
 ```
 
-## Utilisation
+### Exécution
 
 ```bash
 java -jar target/budget-app.jar
 ```
 
-## Exemples
-
-### Ajouter une transaction
-1. Choisir l'option 1 dans le menu
-2. Saisir la catégorie (ex: Alimentation)
-3. Saisir le montant (ex: 50.00)
-4. Ajouter une description (optionnel)
-5. Saisir la date ou appuyer sur Entrée pour aujourd'hui
-
-### Définir un budget
-1. Choisir l'option 5
-2. Saisir la catégorie
-3. Saisir le mois et l'année
-4. Définir la limite en euros
+L'application démarre en mode interactif avec un menu CLI.
 
 ## Tests
 
@@ -62,20 +51,19 @@ java -jar target/budget-app.jar
 mvn clean test
 ```
 
-Le projet contient **71 tests** couvrant la couche service :
+**71 tests** au total :
 - 28 tests pour `TransactionService`
 - 37 tests pour `BudgetService`
 - 6 tests pour `ExportService`
 
-### Vérifier la couverture de code
-
-Couverture minimale requise : **80% sur la couche service** ✅
+### Vérifier la couverture
 
 ```bash
 mvn clean test jacoco:report
 ```
 
-Le rapport de couverture est disponible dans `target/site/jacoco/index.html`
+Le rapport JaCoCo est généré dans `target/site/jacoco/index.html`  
+**Couverture requise** : 80% minimum sur la couche service ✅
 
 ### Compiler et packager
 
@@ -83,7 +71,7 @@ Le rapport de couverture est disponible dans `target/site/jacoco/index.html`
 mvn clean package
 ```
 
-Génère le JAR exécutable : `target/budget-app.jar` (inclut toutes les dépendances)
+Génère le JAR exécutable avec dépendances incluses : `target/budget-app.jar`
 
 ## Architecture
 
@@ -92,13 +80,20 @@ Le projet suit une **architecture en couches stricte** :
 ```
 src/
 ├── main/java/com/mybudget/
+│   ├── cli/            # Interface utilisateur (menu interactif)
 │   ├── model/          # Modèles de domaine (Transaction, Budget)
-│   ├── repository/     # Couche de persistance (SQLite)
-│   ├── service/        # Logique métier et validation
-│   └── cli/            # Interface utilisateur en ligne de commande
+│   ├── repository/     # Couche d'accès aux données (SQLite)
+│   └── service/        # Logique métier et validation
 └── test/java/com/mybudget/
-    └── service/        # Tests d'intégration avec bases SQLite temporaires
+    └── service/        # Tests d'intégration avec bases temporaires
 ```
+
+## Notes utiles
+
+- Les transactions sont persistées dans `budget.db` (SQLite)
+- Le solde affiché = revenus - dépenses (basé sur les transactions)
+- Les alertes de budget s'affichent automatiquement lors du calcul
+- Les fichiers CSV exportés incluent : catégorie, montant, description, date
 
 ### Approche TDD
 Le projet a été développé en suivant la méthodologie **Test-Driven Development** :
