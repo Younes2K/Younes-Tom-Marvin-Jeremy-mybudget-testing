@@ -1,0 +1,7 @@
+node_modules/
+.env
+budget.db
+*.db
+npm-debug.log
+.DS_Store
+coverage/
