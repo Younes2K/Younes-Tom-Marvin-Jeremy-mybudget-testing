@@ -16,8 +16,12 @@ router.get('/', (req, res) => {
       params.push(categorie);
     }
     if (type) {
-      query += ' AND type = ?';
-      params.push(type);
+      // Filtrer par type basé sur le signe du montant
+      if (type === 'revenu') {
+        query += ' AND montant > 0';
+      } else if (type === 'depense') {
+        query += ' AND montant < 0';
+      }
     }
     if (dateDebut) {
       query += ' AND date >= ?';
@@ -33,7 +37,14 @@ router.get('/', (req, res) => {
     const stmt = db.prepare(query);
     const transactions = stmt.all(...params);
     
-    res.json(transactions);
+    // Ajouter le type calculé à chaque transaction
+    const transactionsAvecType = transactions.map(t => ({
+      ...t,
+      type: t.montant >= 0 ? 'revenu' : 'depense',
+      montant: Math.abs(t.montant)
+    }));
+    
+    res.json(transactionsAvecType);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -49,7 +60,12 @@ router.get('/:id', (req, res) => {
       return res.status(404).json({ error: 'Transaction non trouvée' });
     }
     
-    res.json(transaction);
+    // Ajouter le type calculé
+    res.json({
+      ...transaction,
+      type: transaction.montant >= 0 ? 'revenu' : 'depense',
+      montant: Math.abs(transaction.montant)
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -73,12 +89,15 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'Type invalide (revenu ou depense)' });
     }
 
+    // Convertir en montant signé (style CLI Java)
+    const montantSigne = type === 'depense' ? -Math.abs(montant) : Math.abs(montant);
+
     const stmt = db.prepare(`
-      INSERT INTO transactions (categorie, montant, type, description, date)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO transactions (categorie, montant, description, date)
+      VALUES (?, ?, ?, ?)
     `);
     
-    const result = stmt.run(categorie, montant, type, description || '', date);
+    const result = stmt.run(categorie, montantSigne, description || '', date);
     
     res.status(201).json({
       id: result.lastInsertRowid,
@@ -106,17 +125,22 @@ router.put('/:id', (req, res) => {
       return res.status(400).json({ error: 'Type invalide' });
     }
 
+    // Convertir en montant signé si nécessaire
+    let montantSigne = montant;
+    if (montant && type) {
+      montantSigne = type === 'depense' ? -Math.abs(montant) : Math.abs(montant);
+    }
+
     const stmt = db.prepare(`
       UPDATE transactions
       SET categorie = COALESCE(?, categorie),
           montant = COALESCE(?, montant),
-          type = COALESCE(?, type),
           description = COALESCE(?, description),
           date = COALESCE(?, date)
       WHERE id = ?
     `);
     
-    const result = stmt.run(categorie, montant, type, description, date, req.params.id);
+    const result = stmt.run(categorie, montantSigne, description, date, req.params.id);
     
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Transaction non trouvée' });
@@ -147,8 +171,10 @@ router.delete('/:id', (req, res) => {
 // GET - Statistiques globales
 router.get('/stats/summary', (req, res) => {
   try {
-    const revenus = db.prepare('SELECT COALESCE(SUM(montant), 0) as total FROM transactions WHERE type = "revenu"').get();
-    const depenses = db.prepare('SELECT COALESCE(SUM(montant), 0) as total FROM transactions WHERE type = "depense"').get();
+    // Revenus = montants positifs
+    const revenus = db.prepare('SELECT COALESCE(SUM(montant), 0) as total FROM transactions WHERE montant > 0').get();
+    // Dépenses = valeur absolue des montants négatifs
+    const depenses = db.prepare('SELECT COALESCE(SUM(ABS(montant)), 0) as total FROM transactions WHERE montant < 0').get();
     
     res.json({
       revenus: revenus.total,

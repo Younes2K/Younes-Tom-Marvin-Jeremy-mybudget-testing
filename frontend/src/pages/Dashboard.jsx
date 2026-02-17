@@ -175,7 +175,7 @@ function Dashboard() {
                     Dépensé: <strong style={{ color: '#ef4444' }}>{budget.depense.toFixed(2)} €</strong>
                   </span>
                   <span style={{ color: '#6b7280' }}>
-                    Limite: <strong style={{ color: '#374151' }}>{budget.montant_limite.toFixed(2)} €</strong>
+                    Limite: <strong style={{ color: '#374151' }}>{budget.limite.toFixed(2)} €</strong>
                   </span>
                   <span style={{ color: '#6b7280' }}>
                     Restant: <strong style={{ color: budget.restant >= 0 ? '#10b981' : '#ef4444' }}>

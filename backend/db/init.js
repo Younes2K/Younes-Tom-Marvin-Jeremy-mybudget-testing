@@ -18,28 +18,25 @@ console.log('📂 Chemin de la base de données:', dbPath);
 const db = new Database(dbPath);
 
 export function initDatabase() {
-  // Table des transactions
+  // Table des transactions (compatible avec le CLI Java)
   db.exec(`
     CREATE TABLE IF NOT EXISTS transactions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       categorie TEXT NOT NULL,
       montant REAL NOT NULL,
-      type TEXT NOT NULL CHECK(type IN ('revenu', 'depense')),
       description TEXT,
-      date TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      date TEXT NOT NULL
     )
   `);
 
-  // Table des budgets
+  // Table des budgets (compatible avec le CLI Java)
   db.exec(`
     CREATE TABLE IF NOT EXISTS budgets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       categorie TEXT NOT NULL,
-      montant_limite REAL NOT NULL,
       mois INTEGER NOT NULL,
       annee INTEGER NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      limite REAL NOT NULL,
       UNIQUE(categorie, mois, annee)
     )
   `);

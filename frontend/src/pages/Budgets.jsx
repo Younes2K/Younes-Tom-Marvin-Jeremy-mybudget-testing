@@ -7,7 +7,7 @@ function Budgets() {
   const [showModal, setShowModal] = useState(false)
   const [formData, setFormData] = useState({
     categorie: '',
-    montant_limite: '',
+    limite: '',
     mois: new Date().getMonth() + 1,
     annee: new Date().getFullYear()
   })
@@ -67,7 +67,7 @@ function Budgets() {
   const resetForm = () => {
     setFormData({
       categorie: '',
-      montant_limite: '',
+      limite: '',
       mois: new Date().getMonth() + 1,
       annee: new Date().getFullYear()
     })
@@ -115,7 +115,7 @@ function Budgets() {
                 <div>
                   <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>Limite</p>
                   <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
-                    {budget.montant_limite.toFixed(2)} €
+                    {budget.limite.toFixed(2)} €
                   </p>
                 </div>
                 <div>
@@ -206,8 +206,8 @@ function Budgets() {
                 <input
                   type="number"
                   step="0.01"
-                  value={formData.montant_limite}
-                  onChange={(e) => setFormData({ ...formData, montant_limite: e.target.value })}
+                  value={formData.limite}
+                  onChange={(e) => setFormData({ ...formData, limite: e.target.value })}
                   required
                 />
               </div>

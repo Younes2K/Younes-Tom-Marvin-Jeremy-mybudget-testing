@@ -50,14 +50,14 @@ router.get('/:id', (req, res) => {
 // POST - Créer un nouveau budget
 router.post('/', (req, res) => {
   try {
-    const { categorie, montant_limite, mois, annee } = req.body;
+    const { categorie, limite, mois, annee } = req.body;
     
     // Validation
-    if (!categorie || !montant_limite || !mois || !annee) {
+    if (!categorie || !limite || !mois || !annee) {
       return res.status(400).json({ error: 'Champs requis manquants' });
     }
     
-    if (montant_limite <= 0) {
+    if (limite <= 0) {
       return res.status(400).json({ error: 'Le montant limite doit être positif' });
     }
     
@@ -66,17 +66,17 @@ router.post('/', (req, res) => {
     }
 
     const stmt = db.prepare(`
-      INSERT INTO budgets (categorie, montant_limite, mois, annee)
+      INSERT INTO budgets (categorie, limite, mois, annee)
       VALUES (?, ?, ?, ?)
     `);
     
     try {
-      const result = stmt.run(categorie, montant_limite, mois, annee);
+      const result = stmt.run(categorie, limite, mois, annee);
       
       res.status(201).json({
         id: result.lastInsertRowid,
         categorie,
-        montant_limite,
+        limite,
         mois,
         annee
       });
@@ -94,19 +94,19 @@ router.post('/', (req, res) => {
 // PUT - Modifier un budget
 router.put('/:id', (req, res) => {
   try {
-    const { montant_limite } = req.body;
+    const { limite } = req.body;
     
-    if (montant_limite && montant_limite <= 0) {
+    if (limite && limite <= 0) {
       return res.status(400).json({ error: 'Le montant limite doit être positif' });
     }
 
     const stmt = db.prepare(`
       UPDATE budgets
-      SET montant_limite = COALESCE(?, montant_limite)
+      SET limite = COALESCE(?, limite)
       WHERE id = ?
     `);
     
-    const result = stmt.run(montant_limite, req.params.id);
+    const result = stmt.run(limite, req.params.id);
     
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Budget non trouvé' });
@@ -150,18 +150,18 @@ router.get('/:id/summary', (req, res) => {
       : `${budget.annee}-${String(budget.mois + 1).padStart(2, '0')}-01`;
     
     const depensesStmt = db.prepare(`
-      SELECT COALESCE(SUM(montant), 0) as total
+      SELECT COALESCE(SUM(ABS(montant)), 0) as total
       FROM transactions
       WHERE categorie = ? 
-        AND type = 'depense'
+        AND montant < 0
         AND date >= ? 
         AND date < ?
     `);
     
     const depenses = depensesStmt.get(budget.categorie, dateDebut, dateFin);
     const depense = depenses.total;
-    const restant = budget.montant_limite - depense;
-    const pourcentage = (depense / budget.montant_limite) * 100;
+    const restant = budget.limite - depense;
+    const pourcentage = (depense / budget.limite) * 100;
     
     let alerte = null;
     if (pourcentage >= 100) {
